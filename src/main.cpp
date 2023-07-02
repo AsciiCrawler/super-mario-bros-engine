@@ -7,6 +7,7 @@
 
 #include "string"
 #include "memory"
+#include "fstream"
 #include <typeinfo>
 #include <typeindex>
 
@@ -17,6 +18,7 @@
 #include "iostream"
 
 #include "src/utilities.hpp"
+#include "src/sprite.hpp"
 
 SDL_Window *window;
 SDL_GLContext openGLContext;
@@ -44,21 +46,39 @@ void createWindow()
 }
 
 float vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-    0.0f, 0.5f, 0.0f};
+    // positions          // texture coords
+    0.5f, 0.5f, 0.0f, 1.0f, 1.0f,   // top right
+    0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // bottom right
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // bottom left
+    -0.5f, 0.5f, 0.0f, 0.0f, 1.0f   // top left
+};
+unsigned int indices[] = {
+    0, 1, 3, // first triangle
+    1, 2, 3  // second triangle
+};
 
 int main(int ArgCount, char **Args)
 {
     createWindow();
 
     /* Load Vertex Shader */
-    std::string vertexShaderString = Utilities::readFile("assets/shaders/shader.vert");
+    std::string vertexShaderString = Utilities::readFile("assets/shaders/vertex.vert");
     const char *vertexShaderChars = vertexShaderString.c_str();
     GLuint vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderChars, nullptr);
     glCompileShader(vertexShader);
+    {
+        int success;
+        char infoLog[512];
+        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                      << infoLog << std::endl;
+        }
+    }
 
     /* Load Fragment Shader */
     std::string fragmentShaderString = Utilities::readFile("assets/shaders/fragment.frag");
@@ -67,6 +87,17 @@ int main(int ArgCount, char **Args)
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderChars, nullptr);
     glCompileShader(fragmentShader);
+    {
+        int success;
+        char infoLog[512];
+        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                      << infoLog << std::endl;
+        }
+    }
 
     /* ShaderProgram */
     GLuint shaderProgram;
@@ -75,27 +106,59 @@ int main(int ArgCount, char **Args)
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
 
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
     /* VAO - Vertex array object */
     /* VBO - vertex buffer objects  */
-    GLuint VAO, VBO;
+    GLuint VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    /* glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0); */
+
+    /* Tesx */
+    unsigned int texture1;
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+    unsigned char *data = stbi_load("assets/sprites/mario.png", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
     /*  */
 
     /* glEnable(GL_DEPTH_TEST); */
-    glUseProgram(shaderProgram);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    SDL_GL_SetSwapInterval(0);
+
+    SDL_GL_SetSwapInterval(1);
+
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::rotate(trans, glm::radians(0.0f), glm::vec3(0.0, 0.0, 1.0));
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
@@ -109,10 +172,18 @@ int main(int ArgCount, char **Args)
         lastTick = SDL_GetTicks();
         deltaTime = milli * 0.001f;
 
+        glUseProgram(shaderProgram);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Render
 
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        /* sprite.render(); */
         SDL_GL_SwapWindow(window); // Render
 
         SDL_Event event;
@@ -143,6 +214,8 @@ int main(int ArgCount, char **Args)
             lastTime += 1000;
         }
     }
+
+    glDeleteProgram(shaderProgram);
 
     SDL_GL_DeleteContext(openGLContext);
     SDL_DestroyWindow(window);

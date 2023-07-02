@@ -4,7 +4,7 @@ project(main)
 
 set(CMAKE_CXX_STANDAR 14)
 set(CMAKE_CXX_STANDAR_REQUIRED True)
-set(CMAKE_CXX_FLAGS "-std=c++14 -lSDL2 -ldl") # -O3
+set(CMAKE_CXX_FLAGS "-std=c++14 -lSDL2 -ldl") #-O3 
 set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 
 find_package(SDL2 REQUIRED)
