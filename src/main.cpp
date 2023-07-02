@@ -33,8 +33,8 @@ void createWindow()
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 
-    window = SDL_CreateWindow("OpenGL Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_RENDERER_PRESENTVSYNC);
-    /* SDL_WarpMouseInWindow(window, 800 / 2, 600 / 2);
+    window = SDL_CreateWindow("OpenGL Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 685, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_RENDERER_PRESENTVSYNC);
+    /* SDL_WarpMouseInWindow(window, 685 / 2, 600 / 2);
     SDL_SetRelativeMouseMode(SDL_TRUE);            */
 
     openGLContext = SDL_GL_CreateContext(window);
@@ -47,10 +47,10 @@ void createWindow()
 
 float vertices[] = {
     // positions          // texture coords
-    0.5f, 0.5f, 0.0f, 1.0f, 1.0f,   // top right
-    0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // bottom left
-    -0.5f, 0.5f, 0.0f, 0.0f, 1.0f   // top left
+    1.0f, 1.0f, 0.0f, 1.0f, 1.0f,   // top right
+    1.0f, -1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
+    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // bottom left
+    -1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
 };
 unsigned int indices[] = {
     0, 1, 3, // first triangle
@@ -157,15 +157,9 @@ int main(int ArgCount, char **Args)
     stbi_image_free(data);
     /*  */
 
-    /* glEnable(GL_DEPTH_TEST); */
+    glEnable(GL_DEPTH_TEST);
     SDL_GL_SetSwapInterval(1);
     /*  */
-
-    float yaw = -90.0f; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-    float pitch = 0.0f;
-    float lastX = 800.0f / 2.0;
-    float lastY = 600.0 / 2.0;
-    float fov = 45.0f;
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
@@ -189,9 +183,9 @@ int main(int ArgCount, char **Args)
 
         {
             // Reference Height = 15.0f
-            const float inverseAspect = 800.0f / 600.0f;
-            const float width = (15 * inverseAspect) / 2.0f;
-            const float height = 15.0f / 2.0f;
+            const float inverseAspect = 685.0f / 600.0f;
+            const float width = (15 * inverseAspect);
+            const float height = 15.0f;
 
             glm::mat4 projection = glm::ortho(-width, width, -height, height, 0.1f, 100.0f);
             unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
@@ -199,20 +193,13 @@ int main(int ArgCount, char **Args)
         }
 
         {
-            glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-            unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        }
-
-        {
             glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
             model = glm::translate(model, glm::vec3(0.0f, 0.0f, -6.0f));
-            /* model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.3f, 0.5f)); */
             unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(0 * sizeof(GLuint)));
 
         /* sprite.render(); */
         SDL_GL_SwapWindow(window); // Render
