@@ -4,10 +4,8 @@
 #include "iostream"
 #include "includes/glad/glad.h"
 
-class Sprite
+class InputSystem
 {
 public:
-    void render() { 
-        std::cout << "Render" << std::endl;
-    }
+    
 };

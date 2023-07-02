@@ -18,7 +18,8 @@
 #include "iostream"
 
 #include "src/utilities.hpp"
-#include "src/sprite.hpp"
+#include "src/gameManager.hpp"
+#include "src/openGLToolkit.hpp"
 
 SDL_Window *window;
 SDL_GLContext openGLContext;
@@ -45,12 +46,12 @@ void createWindow()
     }
 }
 
+// 3 Position - 2 Texture position
 float vertices[] = {
-    // positions          // texture coords
-    1.0f, 1.0f, 0.0f, 1.0f, 1.0f,   // top right
-    1.0f, -1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
-    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // bottom left
-    -1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
+    1.0f, 1.0f, 1.0f, 1.0f, // top right
+    1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+    0.0f, 0.0f, 0.0f, 0.0f, // bottom left
+    0.0f, 1.0f, 0.0f, 1.0f  // top left
 };
 unsigned int indices[] = {
     0, 1, 3, // first triangle
@@ -64,57 +65,10 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 int main(int ArgCount, char **Args)
 {
     createWindow();
+    OpenGLToolkit::LoadVertexShader();
+    OpenGLToolkit::LoadFragmentShader();
+    OpenGLToolkit::LoadShaderProgram();
 
-    /* Load Vertex Shader */
-    std::string vertexShaderString = Utilities::readFile("assets/shaders/vertex.vert");
-    const char *vertexShaderChars = vertexShaderString.c_str();
-    GLuint vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderChars, nullptr);
-    glCompileShader(vertexShader);
-    {
-        int success;
-        char infoLog[512];
-        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                      << infoLog << std::endl;
-        }
-    }
-
-    /* Load Fragment Shader */
-    std::string fragmentShaderString = Utilities::readFile("assets/shaders/fragment.frag");
-    const char *fragmentShaderChars = fragmentShaderString.c_str();
-    GLuint fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderChars, nullptr);
-    glCompileShader(fragmentShader);
-    {
-        int success;
-        char infoLog[512];
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-                      << infoLog << std::endl;
-        }
-    }
-
-    /* ShaderProgram */
-    GLuint shaderProgram;
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    /* VAO - Vertex array object */
-    /* VBO - vertex buffer objects  */
     GLuint VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -126,15 +80,11 @@ int main(int ArgCount, char **Args)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    /* glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0); */
-
-    /* Tesx */
     unsigned int texture1;
     glGenTextures(1, &texture1);
     glBindTexture(GL_TEXTURE_2D, texture1);
@@ -166,14 +116,13 @@ int main(int ArgCount, char **Args)
     float lastTime = 0.0f;
     float nFrames = 0.0f;
     float deltaTime = 0.0f;
-    bool isGameRunning = true;
-    while (isGameRunning)
+    while (GameManager::isGameRunning)
     {
         milli = SDL_GetTicks() - lastTick;
         lastTick = SDL_GetTicks();
         deltaTime = milli * 0.001f;
 
-        glUseProgram(shaderProgram);
+        glUseProgram(GameManager::shaderProgram);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Render
 
@@ -182,24 +131,23 @@ int main(int ArgCount, char **Args)
         glBindTexture(GL_TEXTURE_2D, texture1);
 
         {
-            // Reference Height = 15.0f
             const float inverseAspect = 685.0f / 600.0f;
-            const float width = (15 * inverseAspect);
-            const float height = 15.0f;
+            const float width = (15 * inverseAspect) / 2.0f;
+            const float height = 15.0f / 2.0f;
 
             glm::mat4 projection = glm::ortho(-width, width, -height, height, 0.1f, 100.0f);
-            unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+            unsigned int projectionLoc = glGetUniformLocation(GameManager::shaderProgram, "projection");
             glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
         }
 
         {
             glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
             model = glm::translate(model, glm::vec3(0.0f, 0.0f, -6.0f));
-            unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
+            unsigned int modelLoc = glGetUniformLocation(GameManager::shaderProgram, "model");
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(0 * sizeof(GLuint)));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)(0 * sizeof(GLuint)));
 
         /* sprite.render(); */
         SDL_GL_SwapWindow(window); // Render
@@ -211,7 +159,7 @@ int main(int ArgCount, char **Args)
             {
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                 {
-                    isGameRunning = false;
+                    GameManager::isGameRunning = false;
                     break;
                 }
             }
@@ -233,7 +181,7 @@ int main(int ArgCount, char **Args)
         }
     }
 
-    glDeleteProgram(shaderProgram);
+    glDeleteProgram(GameManager::shaderProgram);
 
     SDL_GL_DeleteContext(openGLContext);
     SDL_DestroyWindow(window);
