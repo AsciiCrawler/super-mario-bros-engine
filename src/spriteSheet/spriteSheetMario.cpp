@@ -1,7 +1,7 @@
 #include "src/spriteSheet/spriteSheetMario.hpp"
 #include "iostream"
 
-SpriteSheetMario::SpriteSheetMario(const std::string file, const float spriteWidth, const float spriteHeight) : SpriteSheet(file, spriteWidth, spriteHeight)
+SpriteSheetMario::SpriteSheetMario(const std::string file, const float spriteWidth, const float spriteHeight, const float quadWidth, const float quadHeight) : SpriteSheet(file, spriteWidth, spriteHeight, quadWidth, quadHeight)
 {
     auto getSpriteIndex = [](int index)
     { return index * 6; };

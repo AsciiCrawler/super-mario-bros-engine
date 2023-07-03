@@ -5,5 +5,5 @@
 class SpriteSheetMario : public SpriteSheet
 {
 public:
-    SpriteSheetMario(const std::string file, const float spriteWidth, const float spriteHeight);
+    SpriteSheetMario(const std::string file, const float spriteWidth, const float spriteHeight, const float quadSizeWidth, const float quadSizeHeight);
 };

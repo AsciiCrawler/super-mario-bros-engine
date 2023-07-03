@@ -6,7 +6,7 @@
 class SpriteSheet
 {
 public:
-    SpriteSheet(const std::string file, const float spriteWidth, const float spriteHeight);
+    SpriteSheet(const std::string file, const float spriteWidth, const float spriteHeight, const float quadSizeWidth, const float quadSizeHeight);
 
     std::vector<float> vertices;
     unsigned int VAO, VBO;

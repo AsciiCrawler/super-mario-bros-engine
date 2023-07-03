@@ -6,7 +6,7 @@
 #include "includes/glm/gtc/type_ptr.hpp"
 #include "src/gameManager.hpp"
 
-SpriteSheet::SpriteSheet(const std::string file, const float spriteWidth, const float spriteHeight)
+SpriteSheet::SpriteSheet(const std::string file, const float spriteWidth, const float spriteHeight,  const float quadSizeWidth, const float quadSizeHeight)
 {
     glGenVertexArrays(1, &this->VAO);
     glBindVertexArray(this->VAO);
@@ -41,27 +41,27 @@ SpriteSheet::SpriteSheet(const std::string file, const float spriteWidth, const 
         for (size_t x = 0; x < spritesW; x++)
         {
             // Top Right
-            this->vertices.push_back(1.0f);
-            this->vertices.push_back(2.0f);
+            this->vertices.push_back(quadSizeWidth);
+            this->vertices.push_back(quadSizeHeight);
             this->vertices.push_back(((float(x)) * textureWidth) + textureWidth + textureWidthPadding + (textureWidthPadding * x * 2));
             this->vertices.push_back(((float(y)) * textureHeight) + textureHeight + textureHeightPadding + (textureHeightPadding * y * 2));
 
             // Bottom Right
-            this->vertices.push_back(1.0f);
+            this->vertices.push_back(quadSizeWidth);
             this->vertices.push_back(0.0f);
             this->vertices.push_back(((float(x)) * textureWidth) + textureWidth + textureWidthPadding + (textureWidthPadding * x * 2));
             this->vertices.push_back(((float(y)) * textureHeight) + 0.0f + textureHeightPadding + (textureHeightPadding * y * 2));
 
             // Top Left
             this->vertices.push_back(0.0f);
-            this->vertices.push_back(2.0f);
+            this->vertices.push_back(quadSizeHeight);
             this->vertices.push_back(((float(x)) * textureWidth) + 0.0f + textureWidthPadding + (textureWidthPadding * x * 2));
             this->vertices.push_back(((float(y)) * textureHeight) + textureHeight + textureHeightPadding + (textureHeightPadding * y * 2));
 
             /*  */
 
             // Bottom Right
-            this->vertices.push_back(1.0f);
+            this->vertices.push_back(quadSizeWidth);
             this->vertices.push_back(0.0f);
             this->vertices.push_back(((float(x)) * textureWidth) + textureWidth + textureWidthPadding + (textureWidthPadding * x * 2));
             this->vertices.push_back(((float(y)) * textureHeight) + 0.0f + textureHeightPadding + (textureHeightPadding * y * 2));
@@ -74,7 +74,7 @@ SpriteSheet::SpriteSheet(const std::string file, const float spriteWidth, const 
 
             // Top Left
             this->vertices.push_back(0.0f);
-            this->vertices.push_back(2.0f);
+            this->vertices.push_back(quadSizeHeight);
             this->vertices.push_back(((float(x)) * textureWidth) + 0.0f + textureWidthPadding + (textureWidthPadding * x * 2));
             this->vertices.push_back(((float(y)) * textureHeight) + textureHeight + textureHeightPadding + (textureHeightPadding * y * 2));
         }

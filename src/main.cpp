@@ -10,6 +10,7 @@
 #include "src/openGLToolkit.hpp"
 #include "src/spriteSheet/spriteSheet.hpp"
 #include "src/spriteSheet/spriteSheetMario.hpp"
+#include "src/spriteSheet/spriteSheetBlocks.hpp"
 #include "src/camera.hpp"
 #include "src/entity.hpp"
 
@@ -67,8 +68,11 @@ int main(int ArgCount, char **Args)
 
     GameManager::camera = std::make_unique<Camera>();
 
-    std::shared_ptr<SpriteSheet> marioSpriteSheet = std::make_shared<SpriteSheetMario>("assets/sprites/mario.png", 16.0f, 32.0f);
-    Entity entity = Entity(marioSpriteSheet);
+    std::shared_ptr<SpriteSheet> marioSpriteSheet = std::make_shared<SpriteSheetMario>("assets/sprites/mario.png", 16.0f, 32.0f, 1.0f, 2.0f);
+    Entity entityMario = Entity(marioSpriteSheet);
+
+    std::shared_ptr<SpriteSheet> blocksSpriteSheet = std::make_shared<SpriteSheetBlocks>("assets/sprites/blocks.png", 16.0f, 16.0f, 1.0f, 1.0f);
+    Entity entityBlock = Entity(blocksSpriteSheet);
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
@@ -86,9 +90,11 @@ int main(int ArgCount, char **Args)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         marioSpriteSheet->use();
+        entityMario.setSpriteIndex("idle-right-giant");
+        entityMario.draw();
 
-        entity.setSpriteIndex("game-over");
-        entity.draw();
+        blocksSpriteSheet->use();
+        entityBlock.draw();
         /* sprite.draw(); */
 
         /* Render */
