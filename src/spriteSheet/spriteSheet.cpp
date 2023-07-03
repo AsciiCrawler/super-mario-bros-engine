@@ -1,4 +1,4 @@
-#include "src/spriteSheet.hpp"
+#include "src/spriteSheet/spriteSheet.hpp"
 #include "includes/stb_image.h"
 #include "includes/glad/glad.h"
 #include "includes/glm/glm.hpp"
@@ -6,7 +6,7 @@
 #include "includes/glm/gtc/type_ptr.hpp"
 #include "src/gameManager.hpp"
 
-void SpriteSheet::init()
+SpriteSheet::SpriteSheet(const std::string file, const float spriteWidth, const float spriteHeight)
 {
     glGenVertexArrays(1, &this->VAO);
     glBindVertexArray(this->VAO);
@@ -21,15 +21,15 @@ void SpriteSheet::init()
 
     int widthPixels, heightPixels, nrChannels;
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load("assets/sprites/mario.png", &widthPixels, &heightPixels, &nrChannels, 0);
+    unsigned char *data = stbi_load(file.c_str(), &widthPixels, &heightPixels, &nrChannels, 0);
 
     int spritesW = widthPixels / 18;
     int spritesH = heightPixels / 34;
-    float textureWidth = 1.0f / (((float)widthPixels) / 16.0f);
-    float textureHeight = 1.0f / (((float)heightPixels) / 32.0f);
+    float textureWidth = 1.0f / (((float)widthPixels) / spriteWidth);
+    float textureHeight = 1.0f / (((float)heightPixels) / spriteHeight);
 
-    float textureWidthPadding = 1.0f / (((float)widthPixels) / 18.0f);
-    float textureHeightPadding = 1.0f / (((float)heightPixels) / 34.0f);
+    float textureWidthPadding = 1.0f / (((float)widthPixels) / (spriteWidth + 2.0f));
+    float textureHeightPadding = 1.0f / (((float)heightPixels) / (spriteHeight + 2.0f));
     textureWidthPadding -= textureWidth;
     textureWidthPadding /= 2.0f;
     textureHeightPadding -= textureHeight;

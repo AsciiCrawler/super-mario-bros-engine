@@ -8,7 +8,8 @@
 #include "src/utilities.hpp"
 #include "src/gameManager.hpp"
 #include "src/openGLToolkit.hpp"
-#include "src/spriteSheet.hpp"
+#include "src/spriteSheet/spriteSheet.hpp"
+#include "src/spriteSheet/spriteSheetMario.hpp"
 #include "src/camera.hpp"
 #include "src/entity.hpp"
 
@@ -66,10 +67,8 @@ int main(int ArgCount, char **Args)
 
     GameManager::camera = std::make_unique<Camera>();
 
-    SpriteSheet spriteSheet = SpriteSheet();
-    spriteSheet.init();
-
-    Entity entity = Entity();
+    std::shared_ptr<SpriteSheet> marioSpriteSheet = std::make_shared<SpriteSheetMario>("assets/sprites/mario.png", 16.0f, 32.0f);
+    Entity entity = Entity(marioSpriteSheet);
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
@@ -86,7 +85,9 @@ int main(int ArgCount, char **Args)
         glUseProgram(GameManager::shaderProgram);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        spriteSheet.use();
+        marioSpriteSheet->use();
+
+        entity.setSpriteIndex("game-over");
         entity.draw();
         /* sprite.draw(); */
 
