@@ -1,26 +1,16 @@
-#define GL_SILENCE_DEPRECATION
+// STB_IMAGE
 #define STB_IMAGE_IMPLEMENTATION
-
-#include "includes/SDL2/SDL.h"
-#include "includes/glad/glad.h"
 #include "includes/stb_image.h"
 
-#include "string"
-#include "memory"
-#include "fstream"
-#include <typeinfo>
-#include <typeindex>
-
-#include "includes/glm/glm.hpp"
-#include "includes/glm/gtc/matrix_transform.hpp"
-#include "includes/glm/gtc/type_ptr.hpp"
-
-#include "iostream"
+// SDL
+#include "includes/SDL2/SDL.h"
 
 #include "src/utilities.hpp"
 #include "src/gameManager.hpp"
 #include "src/openGLToolkit.hpp"
-#include "src/sprite.hpp"
+#include "src/spriteSheet.hpp"
+#include "src/camera.hpp"
+#include "src/entity.hpp"
 
 SDL_Window *window;
 SDL_GLContext openGLContext;
@@ -34,6 +24,7 @@ void createWindow()
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+    SDL_GL_SetSwapInterval(1);
 
     window = SDL_CreateWindow("OpenGL Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 685, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_RENDERER_PRESENTVSYNC);
     /* SDL_WarpMouseInWindow(window, 685 / 2, 600 / 2);
@@ -69,54 +60,16 @@ int main(int ArgCount, char **Args)
     OpenGLToolkit::LoadVertexShader();
     OpenGLToolkit::LoadFragmentShader();
     OpenGLToolkit::LoadShaderProgram();
-
-    GLuint VAO, VBO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    unsigned int texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-    unsigned char *data = stbi_load("assets/sprites/mario.png", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-    /*  */
-
-    glEnable(GL_DEPTH_TEST);
-    SDL_GL_SetSwapInterval(1);
-    /*  */
-
     glUseProgram(GameManager::shaderProgram);
+    glEnable(GL_DEPTH_TEST);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-    Sprite sprite = Sprite();
-    sprite.init();
+    GameManager::camera = std::make_unique<Camera>();
+
+    SpriteSheet spriteSheet = SpriteSheet();
+    spriteSheet.init();
+
+    Entity entity = Entity();
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
@@ -133,7 +86,9 @@ int main(int ArgCount, char **Args)
         glUseProgram(GameManager::shaderProgram);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        sprite.draw();
+        spriteSheet.use();
+        entity.draw();
+        /* sprite.draw(); */
 
         /* Render */
         SDL_GL_SwapWindow(window); // Render
