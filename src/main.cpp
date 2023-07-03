@@ -20,6 +20,7 @@
 #include "src/utilities.hpp"
 #include "src/gameManager.hpp"
 #include "src/openGLToolkit.hpp"
+#include "src/sprite.hpp"
 
 SDL_Window *window;
 SDL_GLContext openGLContext;
@@ -111,6 +112,12 @@ int main(int ArgCount, char **Args)
     SDL_GL_SetSwapInterval(1);
     /*  */
 
+    glUseProgram(GameManager::shaderProgram);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
+    Sprite sprite = Sprite();
+    sprite.init();
+
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
     float lastTime = 0.0f;
@@ -122,36 +129,16 @@ int main(int ArgCount, char **Args)
         lastTick = SDL_GetTicks();
         deltaTime = milli * 0.001f;
 
+        /* Clear Render */
         glUseProgram(GameManager::shaderProgram);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Render
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glBindVertexArray(VAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
+        sprite.draw();
 
-        {
-            const float inverseAspect = 685.0f / 600.0f;
-            const float width = (15 * inverseAspect) / 2.0f;
-            const float height = 15.0f / 2.0f;
-
-            glm::mat4 projection = glm::ortho(-width, width, -height, height, 0.1f, 100.0f);
-            unsigned int projectionLoc = glGetUniformLocation(GameManager::shaderProgram, "projection");
-            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-        }
-
-        {
-            glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-            model = glm::translate(model, glm::vec3(0.0f, 0.0f, -6.0f));
-            unsigned int modelLoc = glGetUniformLocation(GameManager::shaderProgram, "model");
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        }
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)(0 * sizeof(GLuint)));
-
-        /* sprite.render(); */
+        /* Render */
         SDL_GL_SwapWindow(window); // Render
 
+        /* Event Handling */
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
