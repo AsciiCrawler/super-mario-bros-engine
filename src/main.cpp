@@ -69,10 +69,21 @@ int main(int ArgCount, char **Args)
     GameManager::camera = std::make_unique<Camera>();
 
     std::shared_ptr<SpriteSheet> marioSpriteSheet = std::make_shared<SpriteSheetMario>("assets/sprites/mario.png", 16.0f, 32.0f, 1.0f, 2.0f);
+    marioSpriteSheet->use();
     Entity entityMario = Entity(marioSpriteSheet);
 
     std::shared_ptr<SpriteSheet> blocksSpriteSheet = std::make_shared<SpriteSheetBlocks>("assets/sprites/blocks.png", 16.0f, 16.0f, 1.0f, 1.0f);
-    Entity entityBlock = Entity(blocksSpriteSheet);
+    blocksSpriteSheet->use();
+    std::vector<std::shared_ptr<Entity>> entities;
+    for (int i = -7; i < 7; i++)
+    {
+        std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(blocksSpriteSheet);
+        entityBlock->position.x = i;
+        entityBlock->position.y = -7.0f;
+        entities.push_back(entityBlock);
+    }
+
+    std::cout << "Size: " << entities.size() << std::endl;
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
@@ -94,8 +105,8 @@ int main(int ArgCount, char **Args)
         entityMario.draw();
 
         blocksSpriteSheet->use();
-        entityBlock.draw();
-        /* sprite.draw(); */
+        for (auto &&e : entities)
+            e->draw();
 
         /* Render */
         SDL_GL_SwapWindow(window); // Render

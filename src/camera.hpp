@@ -9,4 +9,6 @@ public:
     Camera();
     void update();
     glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    unsigned int viewLocation = 0;
 };
