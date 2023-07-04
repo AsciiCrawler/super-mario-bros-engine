@@ -1,5 +1,6 @@
 #include "src/camera.hpp"
 #include "src/gameManager.hpp"
+#include "includes/glad/glad.h"
 
 Camera::Camera()
 {

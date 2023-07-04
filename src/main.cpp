@@ -13,6 +13,7 @@
 #include "src/spriteSheet/spriteSheetBlocks.hpp"
 #include "src/camera.hpp"
 #include "src/entity.hpp"
+#include "src/inputSystem/inputSystem.hpp"
 
 SDL_Window *window;
 SDL_GLContext openGLContext;
@@ -67,44 +68,54 @@ int main(int ArgCount, char **Args)
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
     GameManager::camera = std::make_unique<Camera>();
-
-    std::shared_ptr<SpriteSheet> marioSpriteSheet = std::make_shared<SpriteSheetMario>("assets/sprites/mario.png", 16.0f, 32.0f, 1.0f, 2.0f);
-    marioSpriteSheet->use();
-    Entity entityMario = Entity(marioSpriteSheet);
-
-    std::shared_ptr<SpriteSheet> blocksSpriteSheet = std::make_shared<SpriteSheetBlocks>("assets/sprites/blocks.png", 16.0f, 16.0f, 1.0f, 1.0f);
-    blocksSpriteSheet->use();
-    std::vector<std::shared_ptr<Entity>> entities;
-    for (int i = -7; i < 7; i++)
+    GameManager::inputSystem = std::make_unique<InputSystem>();
+    
+    // Mario Sprite Sheet
     {
-        std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(blocksSpriteSheet);
-        entityBlock->position.x = i;
-        entityBlock->position.y = -7.0f;
-        entities.push_back(entityBlock);
+        std::shared_ptr<SpriteSheet> marioSpriteSheet = std::make_shared<SpriteSheetMario>("assets/sprites/mario.png", 16.0f, 32.0f, 1.0f, 2.0f);
+        GameManager::marioSpriteSheet = marioSpriteSheet;
+        GameManager::marioSpriteSheet->use();
+        std::unique_ptr<Entity> entityMario = std::make_unique<Entity>(GameManager::marioSpriteSheet);
+        GameManager::playerEntity = std::move(entityMario);
     }
 
-    std::cout << "Size: " << entities.size() << std::endl;
+    // Blocks Sprite Sheet
+    {
+        std::shared_ptr<SpriteSheet> blocksSpriteSheet = std::make_shared<SpriteSheetBlocks>("assets/sprites/blocks.png", 16.0f, 16.0f, 1.0f, 1.0f);
+        GameManager::blocksSpriteSheet = blocksSpriteSheet;
+        GameManager::blocksSpriteSheet->use();
+    }
+
+    // Set Floor Entities
+        std::vector<std::shared_ptr<Entity>> entities;
+        for (int i = -7; i < 7; i++)
+        {
+            std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
+            entityBlock->position.x = i;
+            entityBlock->position.y = -7.0f;
+            entities.push_back(entityBlock);
+        }
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
     float lastTime = 0.0f;
     float nFrames = 0.0f;
-    float deltaTime = 0.0f;
+    /* float deltaTime = 0.0f; */
     while (GameManager::isGameRunning)
     {
         milli = SDL_GetTicks() - lastTick;
         lastTick = SDL_GetTicks();
-        deltaTime = milli * 0.001f;
+        GameManager::deltaTime = milli * 0.001f;
 
         /* Clear Render */
         glUseProgram(GameManager::shaderProgram);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        marioSpriteSheet->use();
-        entityMario.setSpriteIndex("idle-right-giant");
-        entityMario.draw();
+        GameManager::marioSpriteSheet->use();
+        GameManager::playerEntity->setSpriteIndex("idle-right-giant");
+        GameManager::playerEntity->draw();
 
-        blocksSpriteSheet->use();
+        GameManager::blocksSpriteSheet->use();
         for (auto &&e : entities)
             e->draw();
 
@@ -112,18 +123,7 @@ int main(int ArgCount, char **Args)
         SDL_GL_SwapWindow(window); // Render
 
         /* Event Handling */
-        SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_KEYDOWN)
-            {
-                if (event.key.keysym.sym == SDLK_ESCAPE)
-                {
-                    GameManager::isGameRunning = false;
-                    break;
-                }
-            }
-        }
+        GameManager::inputSystem->update();
 
         ++nFrames;
         if (SDL_GetTicks() > lastTime)

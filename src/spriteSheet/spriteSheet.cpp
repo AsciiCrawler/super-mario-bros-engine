@@ -5,6 +5,7 @@
 #include "includes/glm/gtc/matrix_transform.hpp"
 #include "includes/glm/gtc/type_ptr.hpp"
 #include "src/gameManager.hpp"
+#include "iostream"
 
 SpriteSheet::SpriteSheet(const std::string file, const float spriteWidth, const float spriteHeight,  const float quadSizeWidth, const float quadSizeHeight)
 {
