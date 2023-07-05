@@ -29,22 +29,22 @@ void InputSystem::update()
     {
         if (e.first == SDLK_a && e.second == true)
         {
-            GameManager::playerEntity->position.x -= 5.0f * GameManager::deltaTime;
+            GameManager::playerEntity->physicsDirection.x = -5.0f/*  * GameManager::deltaTime */;
         }
 
         if (e.first == SDLK_d && e.second == true)
         {
-            GameManager::playerEntity->position.x += 5.0f * GameManager::deltaTime;
+            GameManager::playerEntity->physicsDirection.x = 5.0f/*  * GameManager::deltaTime */;
         }
 
         if (e.first == SDLK_s && e.second == true)
         {
-            GameManager::playerEntity->position.y -= 5.0f * GameManager::deltaTime;
+            GameManager::playerEntity->physicsDirection.y = 5.0f/*  * GameManager::deltaTime */;
         }
 
         if (e.first == SDLK_w && e.second == true)
         {
-            GameManager::playerEntity->position.y += 5.0f * GameManager::deltaTime;
+            GameManager::playerEntity->physicsDirection.y = 5.0f/*  * GameManager::deltaTime */;
         }
 
     }

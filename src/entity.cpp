@@ -2,9 +2,11 @@
 #include "includes/glad/glad.h"
 #include "src/gameManager.hpp"
 #include "entity.hpp"
+#include "includes/sole/sole.hpp"
 
 Entity::Entity(const std::shared_ptr<SpriteSheet> spriteSheet)
 {
+    this->uuid = sole::uuid4().str();
     this->spriteSheet = spriteSheet;
     this->modelLocation = glGetUniformLocation(GameManager::shaderProgram, "model");
 }

@@ -14,6 +14,7 @@
 #include "src/camera.hpp"
 #include "src/entity.hpp"
 #include "src/inputSystem/inputSystem.hpp"
+#include "src/physicsEngine/physicsEngine.hpp"
 
 SDL_Window *window;
 SDL_GLContext openGLContext;
@@ -69,14 +70,17 @@ int main(int ArgCount, char **Args)
 
     GameManager::camera = std::make_unique<Camera>();
     GameManager::inputSystem = std::make_unique<InputSystem>();
-    
+    GameManager::physicsEngine = std::make_unique<PhysicsEngine>();
+
     // Mario Sprite Sheet
     {
         std::shared_ptr<SpriteSheet> marioSpriteSheet = std::make_shared<SpriteSheetMario>("assets/sprites/mario.png", 16.0f, 32.0f, 1.0f, 2.0f);
         GameManager::marioSpriteSheet = marioSpriteSheet;
         GameManager::marioSpriteSheet->use();
-        std::unique_ptr<Entity> entityMario = std::make_unique<Entity>(GameManager::marioSpriteSheet);
-        GameManager::playerEntity = std::move(entityMario);
+
+        std::shared_ptr<Entity> entityMario = std::make_shared<Entity>(GameManager::marioSpriteSheet);
+        GameManager::dynamicEntities[entityMario->uuid] = entityMario;
+        GameManager::playerEntity = entityMario;
     }
 
     // Blocks Sprite Sheet
@@ -87,14 +91,26 @@ int main(int ArgCount, char **Args)
     }
 
     // Set Floor Entities
-        std::vector<std::shared_ptr<Entity>> entities;
-        for (int i = -7; i < 7; i++)
-        {
-            std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
-            entityBlock->position.x = i;
-            entityBlock->position.y = -7.0f;
-            entities.push_back(entityBlock);
-        }
+    std::vector<std::shared_ptr<Entity>> entities;
+    for (int i = -7; i < 7; i++)
+    {
+        std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
+        entityBlock->position.x = i;
+        entityBlock->position.y = -7.0f;
+
+        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
+        entities.push_back(entityBlock);
+    }
+
+    for (int i = -6; i < 6; i++)
+    {
+        std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
+        entityBlock->position.x = 5.0f;
+        entityBlock->position.y = i;
+
+        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
+        entities.push_back(entityBlock);
+    }
 
     float lastTick = SDL_GetTicks();
     float milli = 0.0f;
@@ -107,23 +123,30 @@ int main(int ArgCount, char **Args)
         lastTick = SDL_GetTicks();
         GameManager::deltaTime = milli * 0.001f;
 
-        /* Clear Render */
-        glUseProgram(GameManager::shaderProgram);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        { // Event Handling BLOCK
+            GameManager::inputSystem->update();
+        }
 
-        GameManager::marioSpriteSheet->use();
-        GameManager::playerEntity->setSpriteIndex("idle-right-giant");
-        GameManager::playerEntity->draw();
+        { // Physics Engine Block
+            GameManager::physicsEngine->update();
+        }
 
-        GameManager::blocksSpriteSheet->use();
-        for (auto &&e : entities)
-            e->draw();
+        { // RENDER BLOCK
+            glUseProgram(GameManager::shaderProgram);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            // ---
 
-        /* Render */
-        SDL_GL_SwapWindow(window); // Render
+            GameManager::marioSpriteSheet->use();
+            GameManager::playerEntity->setSpriteIndex("idle-right-giant");
+            GameManager::playerEntity->draw();
 
-        /* Event Handling */
-        GameManager::inputSystem->update();
+            GameManager::blocksSpriteSheet->use();
+            for (auto &&e : entities)
+                e->draw();
+
+            // ---
+            SDL_GL_SwapWindow(window); // Render
+        }
 
         ++nFrames;
         if (SDL_GetTicks() > lastTime)
