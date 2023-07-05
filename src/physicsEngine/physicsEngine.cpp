@@ -1,42 +1,67 @@
+#include "memory"
+#include "iostream"
+#include "includes/glm/glm.hpp"
 #include "src/physicsEngine/physicsEngine.hpp"
 #include "src/gameManager.hpp"
-#include "memory"
 #include "src/entity.hpp"
-#include "iostream"
+#include "src/physicsEngine/rigidbody.hpp"
 
-bool isCollition(std::shared_ptr<Entity> a, std::shared_ptr<Entity> b)
+bool isOverlap(const Rigidbody a, const Rigidbody b)
 {
-    if (a->position.x + 1 < b->position.x or a->position.x > b->position.x + 1)
+    if (a.deltaPosition.x + 1 < b.deltaPosition.x || a.deltaPosition.x > b.deltaPosition.x + 1)
         return false;
-    if (a->position.y + 1 < b->position.y or a->position.y > b->position.y + 1)
+    if (a.deltaPosition.y + 1 < b.deltaPosition.y || a.deltaPosition.y > b.deltaPosition.y + 1)
         return false;
     return true;
+}
+
+void moveEntity(const std::shared_ptr<Entity> entity)
+{
+    Rigidbody entityRb = Rigidbody(entity->position, entity->physicsDirection);
+    for (auto &&sEntity : GameManager::staticEntities)
+    {
+        const Rigidbody staticRb = Rigidbody(sEntity.second->position, glm::vec3(0.0f));
+        if (isOverlap(entityRb, staticRb))
+        {
+            const glm::vec3 temp = entityRb.deltaPosition - staticRb.deltaPosition;
+            if (entity->physicsDirection.y < 0.01f && entityRb.deltaPosition.y > staticRb.deltaPosition.y && abs(entityRb.deltaPosition.x - staticRb.deltaPosition.x) < 0.95f)
+                if (abs(temp.y) > abs(temp.x))
+                {
+                    entityRb.deltaPosition.y = staticRb.deltaPosition.y + 1.0f;
+                    entity->physicsDirection.y = 0.0f;
+                }
+
+            if (entity->physicsDirection.y > 0.01f && entityRb.deltaPosition.y < staticRb.deltaPosition.y && abs(entityRb.deltaPosition.x - staticRb.deltaPosition.x) < 0.95f)
+                if (abs(temp.y) > abs(temp.x))
+                {
+                    entityRb.deltaPosition.y = staticRb.deltaPosition.y - 1.0f;
+                    entity->physicsDirection.y = 0.0f;
+                }
+
+            if (entity->physicsDirection.x > 0.01f && entityRb.deltaPosition.x < staticRb.deltaPosition.x && abs(entityRb.deltaPosition.y - staticRb.deltaPosition.y) < 0.95f)
+                if (abs(temp.x) > abs(temp.y))
+                {
+                    entityRb.deltaPosition.x = staticRb.deltaPosition.x - 1.0f;
+                    entity->physicsDirection.x = 0.0f;
+                }
+
+            if (entity->physicsDirection.x < -0.01f && entityRb.deltaPosition.x > staticRb.deltaPosition.x && abs(entityRb.deltaPosition.y - staticRb.deltaPosition.y) < 0.95f)
+                if (abs(temp.x) > abs(temp.y))
+                {
+                    entityRb.deltaPosition.x = staticRb.deltaPosition.x + 1.0f;
+                    entity->physicsDirection.x = 0.0f;
+                }
+        }
+    }
+
+    entity->position = entityRb.deltaPosition;
 }
 
 void PhysicsEngine::update()
 {
     for (auto &&e : GameManager::dynamicEntities)
-    {
-        e.second->physicsDirection.y -= 9.0f * GameManager::deltaTime;
-    }
+        e.second->physicsDirection.y -= 30.0f * GameManager::deltaTime;
 
     for (auto &&dEntity : GameManager::dynamicEntities)
-    {
-        for (auto &&sEntity : GameManager::staticEntities)
-        {
-            if (isCollition(dEntity.second, sEntity.second))
-            {
-                if (dEntity.second->physicsDirection.y <= 0)
-                {
-                    dEntity.second->physicsDirection.y = 0;
-                    dEntity.second->position.y = sEntity.second->position.y + 1;
-                }
-            }
-        }
-    }
-
-    for (auto &&e : GameManager::dynamicEntities)
-    {
-        e.second->position += e.second->physicsDirection * GameManager::deltaTime;
-    }
+        moveEntity(dEntity.second);
 }

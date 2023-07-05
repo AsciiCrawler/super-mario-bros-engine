@@ -92,7 +92,17 @@ int main(int ArgCount, char **Args)
 
     // Set Floor Entities
     std::vector<std::shared_ptr<Entity>> entities;
-    for (int i = -7; i < 7; i++)
+    for (int i = -0; i < 6; i++)
+    {
+        std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
+        entityBlock->position.x = i;
+        entityBlock->position.y = -3.0f;
+
+        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
+        entities.push_back(entityBlock);
+    }
+
+    for (int i = -8; i < 8; i++)
     {
         std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
         entityBlock->position.x = i;
@@ -105,7 +115,17 @@ int main(int ArgCount, char **Args)
     for (int i = -6; i < 6; i++)
     {
         std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
-        entityBlock->position.x = 5.0f;
+        entityBlock->position.x = 7.0f;
+        entityBlock->position.y = i;
+
+        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
+        entities.push_back(entityBlock);
+    }
+
+    for (int i = -6; i < 6; i++)
+    {
+        std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
+        entityBlock->position.x = -8.0f;
         entityBlock->position.y = i;
 
         GameManager::staticEntities[entityBlock->uuid] = entityBlock;
@@ -137,7 +157,7 @@ int main(int ArgCount, char **Args)
             // ---
 
             GameManager::marioSpriteSheet->use();
-            GameManager::playerEntity->setSpriteIndex("idle-right-giant");
+            GameManager::playerEntity->setSpriteIndex("idle-right-small");
             GameManager::playerEntity->draw();
 
             GameManager::blocksSpriteSheet->use();

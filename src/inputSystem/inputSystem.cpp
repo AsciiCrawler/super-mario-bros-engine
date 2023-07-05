@@ -37,14 +37,9 @@ void InputSystem::update()
             GameManager::playerEntity->physicsDirection.x = 5.0f/*  * GameManager::deltaTime */;
         }
 
-        if (e.first == SDLK_s && e.second == true)
-        {
-            GameManager::playerEntity->physicsDirection.y = 5.0f/*  * GameManager::deltaTime */;
-        }
-
         if (e.first == SDLK_w && e.second == true)
         {
-            GameManager::playerEntity->physicsDirection.y = 5.0f/*  * GameManager::deltaTime */;
+            GameManager::playerEntity->physicsDirection.y = 10.0f/*  * GameManager::deltaTime */;
         }
 
     }
