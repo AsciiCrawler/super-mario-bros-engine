@@ -16,7 +16,7 @@ bool isOverlap(const glm::vec3 a, const glm::vec3 b)
 
 void moveEntity(const std::shared_ptr<Entity> entity)
 {
-    glm::vec3 entityDeltaPosition = entity->position + (entity->physicsDirection * GameManager::deltaTime);
+    glm::vec3 entityDeltaPosition = entity->position + (entity->velocity * GameManager::deltaTime);
     for (auto &&sEntity : GameManager::staticEntities)
     {
         if (isOverlap(entityDeltaPosition, sEntity.second->position))
@@ -24,36 +24,36 @@ void moveEntity(const std::shared_ptr<Entity> entity)
             const glm::vec3 temp = entityDeltaPosition - sEntity.second->position;
 
             // Top => Down
-            if (entity->physicsDirection.y < 0.01f && entityDeltaPosition.y > sEntity.second->position.y && abs(entityDeltaPosition.x - sEntity.second->position.x) < 0.95f)
+            if (entity->velocity.y < 0.01f && entityDeltaPosition.y > sEntity.second->position.y && abs(entityDeltaPosition.x - sEntity.second->position.x) < 0.95f)
                 if (abs(temp.y) > abs(temp.x))
                 {
                     entityDeltaPosition.y = sEntity.second->position.y + 1.0f;
-                    entity->physicsDirection.y = 0.0f;
+                    entity->velocity.y = 0.0f;
                 }
 
             // Down => Top
-            if (entity->physicsDirection.y > 0.01f && entityDeltaPosition.y < sEntity.second->position.y && abs(entityDeltaPosition.x - sEntity.second->position.x) < 0.95f)
+            if (entity->velocity.y > 0.01f && entityDeltaPosition.y < sEntity.second->position.y && abs(entityDeltaPosition.x - sEntity.second->position.x) < 0.95f)
                 if (abs(temp.y) > abs(temp.x))
                 {
                     std::cout << "Collision from bottom" << std::endl;
                     entityDeltaPosition.y = sEntity.second->position.y - 1.0f;
-                    entity->physicsDirection.y = 0.0f;
+                    entity->velocity.y = 0.0f;
                 }
 
             // Left => Right
-            if (entity->physicsDirection.x > 0.01f && entityDeltaPosition.x < sEntity.second->position.x && abs(entityDeltaPosition.y - sEntity.second->position.y) < 0.95f)
+            if (entity->velocity.x > 0.01f && entityDeltaPosition.x < sEntity.second->position.x && abs(entityDeltaPosition.y - sEntity.second->position.y) < 0.95f)
                 if (abs(temp.x) > abs(temp.y))
                 {
                     entityDeltaPosition.x = sEntity.second->position.x - 1.0f;
-                    entity->physicsDirection.x = 0.0f;
+                    entity->velocity.x = 0.0f;
                 }
 
             // Right => Left
-            if (entity->physicsDirection.x < -0.01f && entityDeltaPosition.x > sEntity.second->position.x && abs(entityDeltaPosition.y - sEntity.second->position.y) < 0.95f)
+            if (entity->velocity.x < -0.01f && entityDeltaPosition.x > sEntity.second->position.x && abs(entityDeltaPosition.y - sEntity.second->position.y) < 0.95f)
                 if (abs(temp.x) > abs(temp.y))
                 {
                     entityDeltaPosition.x = sEntity.second->position.x + 1.0f;
-                    entity->physicsDirection.x = 0.0f;
+                    entity->velocity.x = 0.0f;
                 }
         }
     }
@@ -66,15 +66,15 @@ void PhysicsEngine::update()
     for (auto &&e : GameManager::dynamicEntities)
     {
         // Vertial Speed - Gravity
-        e.second->physicsDirection.y -= 30.0f * GameManager::deltaTime;
+        e.second->velocity.y -= 30.0f * GameManager::deltaTime;
 
         // Horizontal Speed
-        if (e.second->physicsDirection.x > 0.1f)
-            e.second->physicsDirection.x -= 20.0f * GameManager::deltaTime;
-        if (e.second->physicsDirection.x < -0.1f)
-            e.second->physicsDirection.x += 20.0f * GameManager::deltaTime;
-        if(abs(e.second->physicsDirection.x) <= 0.1f)
-            e.second->physicsDirection.x = 0.0f;
+        if (e.second->velocity.x > 0.1f)
+            e.second->velocity.x -= 20.0f * GameManager::deltaTime;
+        if (e.second->velocity.x < -0.1f)
+            e.second->velocity.x += 20.0f * GameManager::deltaTime;
+        if(abs(e.second->velocity.x) <= 0.1f)
+            e.second->velocity.x = 0.0f;
     }
 
     for (auto &&dEntity : GameManager::dynamicEntities)
