@@ -8,40 +8,67 @@ void InputSystem::update()
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
+        const SDL_Keycode key = event.key.keysym.sym;
         if (event.type == SDL_KEYDOWN)
         {
-            this->keys[event.key.keysym.sym] = true;
-
-            if (event.key.keysym.sym == SDLK_ESCAPE)
+            if (key == SDLK_ESCAPE)
             {
                 GameManager::isGameRunning = false;
                 break;
             }
+
+            if (key == SDLK_w && this->keys[key] == false)
+            {
+                this->lastJumpMilliseconds = SDL_GetTicks();
+                std::cout << "LastMillisecond: " << this->lastJumpMilliseconds << std::endl;
+            }
+
+            this->keys[key] = true;
         }
 
         if (event.type == SDL_KEYUP)
-        {
             this->keys[event.key.keysym.sym] = false;
-        }
     }
 
     for (auto &&e : this->keys)
     {
         if (e.first == SDLK_a && e.second == true)
-        {
-            GameManager::playerEntity->velocity.x = -5.0f/*  * GameManager::deltaTime */;
-        }
+            GameManager::playerEntity->velocity.x = -5.0f /*  * GameManager::deltaTime */;
 
         if (e.first == SDLK_d && e.second == true)
-        {
-            GameManager::playerEntity->velocity.x = 5.0f/*  * GameManager::deltaTime */;
-        }
+            GameManager::playerEntity->velocity.x = 5.0f /*  * GameManager::deltaTime */;
 
         if (e.first == SDLK_w && e.second == true)
         {
-            GameManager::playerEntity->velocity.y = 10.0f/*  * GameManager::deltaTime */;
+            const int firstPart = 225;
+            const int secondPart = 480;
+            if (this->lastJumpMilliseconds + firstPart > SDL_GetTicks())
+            {
+                this->jumpState = 1;
+                GameManager::playerEntity->velocity.y = 13.0f;
+            }
+
+            if (this->lastJumpMilliseconds + firstPart < SDL_GetTicks() && this->lastJumpMilliseconds + secondPart > SDL_GetTicks())
+            {
+                this->jumpState = 2;
+                GameManager::playerEntity->velocity.y -= 55.0f * GameManager::deltaTime;
+                if(GameManager::playerEntity->velocity.y < 0.2f) { 
+                    GameManager::playerEntity->velocity.y = 0.2f;
+                }
+            }
+
+            if (this->lastJumpMilliseconds + secondPart < SDL_GetTicks())
+                this->jumpState = 0;
         }
 
+        if (e.first == SDLK_w && e.second == false)
+            this->jumpState = 0;
+
+        /* if (e.first == SDLK_w && e.second == false)
+        {
+            this->isJumping = false;
+            this->isPostJumping = false;
+        } */
     }
 
     /* for (auto &e : this->keys)

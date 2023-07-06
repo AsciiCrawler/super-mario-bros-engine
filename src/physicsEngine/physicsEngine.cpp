@@ -65,15 +65,19 @@ void PhysicsEngine::update()
 {
     for (auto &&e : GameManager::dynamicEntities)
     {
-        // Vertial Speed - Gravity
-        e.second->velocity.y -= 30.0f * GameManager::deltaTime;
+        if (GameManager::inputSystem->jumpState == 0)
+        {
+            e.second->velocity.y -= 100.0f * GameManager::deltaTime;
+            if (e.second->velocity.y <= -25.0f)
+                e.second->velocity.y = -25.0f;
+        }
 
         // Horizontal Speed
         if (e.second->velocity.x > 0.1f)
             e.second->velocity.x -= 20.0f * GameManager::deltaTime;
         if (e.second->velocity.x < -0.1f)
             e.second->velocity.x += 20.0f * GameManager::deltaTime;
-        if(abs(e.second->velocity.x) <= 0.1f)
+        if (abs(e.second->velocity.x) <= 0.1f)
             e.second->velocity.x = 0.0f;
     }
 

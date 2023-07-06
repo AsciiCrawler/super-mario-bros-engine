@@ -92,7 +92,9 @@ int main(int ArgCount, char **Args)
 
     // Set Floor Entities
     std::vector<std::shared_ptr<Entity>> entities;
-    for (int i = -0; i < 6; i++)
+
+    // Platform Right
+    for (int i = 3; i < 7; i++)
     {
         std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
         entityBlock->position.x = i;
@@ -102,6 +104,18 @@ int main(int ArgCount, char **Args)
         entities.push_back(entityBlock);
     }
 
+    // Platform Left
+    for (int i = -7; i < -4; i++)
+    {
+        std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
+        entityBlock->position.x = i;
+        entityBlock->position.y = -2.0f;
+
+        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
+        entities.push_back(entityBlock);
+    }
+
+    // Floor
     for (int i = -8; i < 8; i++)
     {
         std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
@@ -112,6 +126,7 @@ int main(int ArgCount, char **Args)
         entities.push_back(entityBlock);
     }
 
+    // Wall right
     for (int i = -6; i < 6; i++)
     {
         std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
@@ -122,6 +137,7 @@ int main(int ArgCount, char **Args)
         entities.push_back(entityBlock);
     }
 
+    // Wall left
     for (int i = -6; i < 6; i++)
     {
         std::shared_ptr<Entity> entityBlock = std::make_shared<Entity>(GameManager::blocksSpriteSheet);
