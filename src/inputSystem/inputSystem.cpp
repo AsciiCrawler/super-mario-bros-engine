@@ -33,10 +33,29 @@ void InputSystem::update()
     for (auto &&e : this->keys)
     {
         if (e.first == SDLK_a && e.second == true)
-            GameManager::playerEntity->velocity.x = -5.0f /*  * GameManager::deltaTime */;
+        {
+
+            if (this->keys[SDLK_LSHIFT] == true)
+            {
+                GameManager::playerEntity->velocity.x = -10.5f;
+            }
+            else
+            {
+                GameManager::playerEntity->velocity.x = -7.5f;
+            }
+        }
 
         if (e.first == SDLK_d && e.second == true)
-            GameManager::playerEntity->velocity.x = 5.0f /*  * GameManager::deltaTime */;
+        {
+            if (this->keys[SDLK_LSHIFT] == true)
+            {
+                GameManager::playerEntity->velocity.x = 10.5f;
+            }
+            else
+            {
+                GameManager::playerEntity->velocity.x = 7.5f;
+            }
+        }
 
         if (e.first == SDLK_w && e.second == true)
         {
@@ -45,14 +64,22 @@ void InputSystem::update()
             if (this->lastJumpMilliseconds + firstPart > SDL_GetTicks())
             {
                 this->jumpState = 1;
-                GameManager::playerEntity->velocity.y = 13.0f;
+                if (abs(GameManager::playerEntity->velocity.x) > 8.5F)
+                {
+                    GameManager::playerEntity->velocity.y = 15.5f;
+                }
+                else
+                {
+                    GameManager::playerEntity->velocity.y = 13.0f;
+                }
             }
 
             if (this->lastJumpMilliseconds + firstPart < SDL_GetTicks() && this->lastJumpMilliseconds + secondPart > SDL_GetTicks())
             {
                 this->jumpState = 2;
                 GameManager::playerEntity->velocity.y -= 55.0f * GameManager::deltaTime;
-                if(GameManager::playerEntity->velocity.y < 0.2f) { 
+                if (GameManager::playerEntity->velocity.y < 0.2f)
+                {
                     GameManager::playerEntity->velocity.y = 0.2f;
                 }
             }

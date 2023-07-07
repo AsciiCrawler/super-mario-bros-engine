@@ -36,6 +36,7 @@ void moveEntity(const std::shared_ptr<Entity> entity)
                 if (abs(temp.y) > abs(temp.x))
                 {
                     std::cout << "Collision from bottom" << std::endl;
+                    GameManager::inputSystem->lastJumpMilliseconds = 0;
                     entityDeltaPosition.y = sEntity.second->position.y - 1.0f;
                     entity->velocity.y = 0.0f;
                 }
