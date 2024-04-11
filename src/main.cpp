@@ -66,7 +66,7 @@ int main(int ArgCount, char **Args)
     OpenGLToolkit::LoadShaderProgram();
     glUseProgram(GameManager::shaderProgram);
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.4823529411764706f, 0.4627450980392157f, 0.9686274509803922f, 1.0f);
 
     GameManager::camera = std::make_unique<Camera>();
     GameManager::inputSystem = std::make_unique<InputSystem>();
