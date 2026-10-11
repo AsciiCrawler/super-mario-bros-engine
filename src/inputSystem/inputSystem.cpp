@@ -1,6 +1,6 @@
 #include "src/inputSystem/inputSystem.hpp"
 #include "src/gameManager.hpp"
-#include "includes/SDL2/SDL.h"
+#include <SDL3/SDL.h>
 #include "iostream"
 
 void InputSystem::update()
@@ -8,8 +8,8 @@ void InputSystem::update()
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        const SDL_Keycode key = event.key.keysym.sym;
-        if (event.type == SDL_KEYDOWN)
+        const SDL_Keycode key = event.key.key;
+        if (event.type == SDL_EVENT_KEY_DOWN)
         {
             if (key == SDLK_ESCAPE)
             {
@@ -17,7 +17,7 @@ void InputSystem::update()
                 break;
             }
 
-            if (key == SDLK_w && this->keys[key] == false)
+            if (key == SDLK_W && this->keys[key] == false)
             {
                 this->lastJumpMilliseconds = SDL_GetTicks();
                 std::cout << "LastMillisecond: " << this->lastJumpMilliseconds << std::endl;
@@ -26,13 +26,13 @@ void InputSystem::update()
             this->keys[key] = true;
         }
 
-        if (event.type == SDL_KEYUP)
-            this->keys[event.key.keysym.sym] = false;
+        if (event.type == SDL_EVENT_KEY_UP)
+            this->keys[event.key.key] = false;
     }
 
     for (auto &&e : this->keys)
     {
-        if (e.first == SDLK_a && e.second == true)
+        if (e.first == SDLK_A && e.second == true)
         {
 
             if (this->keys[SDLK_LSHIFT] == true)
@@ -45,7 +45,7 @@ void InputSystem::update()
             }
         }
 
-        if (e.first == SDLK_d && e.second == true)
+        if (e.first == SDLK_D && e.second == true)
         {
             if (this->keys[SDLK_LSHIFT] == true)
             {
@@ -57,7 +57,7 @@ void InputSystem::update()
             }
         }
 
-        if (e.first == SDLK_w && e.second == true)
+        if (e.first == SDLK_W && e.second == true)
         {
             const int firstPart = 225;
             const int secondPart = 480;
@@ -88,10 +88,10 @@ void InputSystem::update()
                 this->jumpState = 0;
         }
 
-        if (e.first == SDLK_w && e.second == false)
+        if (e.first == SDLK_W && e.second == false)
             this->jumpState = 0;
 
-        /* if (e.first == SDLK_w && e.second == false)
+        /* if (e.first == SDLK_W && e.second == false)
         {
             this->isJumping = false;
             this->isPostJumping = false;
@@ -102,7 +102,7 @@ void InputSystem::update()
     {
         std::cout << "key : " << e.second << std::endl;
 
-        if(e.second == SDLK_a) {
+        if(e.second == SDLK_A) {
             std::cout << "a is pressed" << std::endl;
         }
     } */

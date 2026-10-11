@@ -3,7 +3,7 @@
 #include "includes/stb_image.h"
 
 // SDL
-#include "includes/SDL2/SDL.h"
+#include <SDL3/SDL.h>
 
 #include "src/utilities.hpp"
 #include "src/gameManager.hpp"
@@ -28,13 +28,14 @@ void createWindow()
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-    SDL_GL_SetSwapInterval(1);
 
-    window = SDL_CreateWindow("OpenGL Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 685, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_RENDERER_PRESENTVSYNC);
+    window = SDL_CreateWindow("OpenGL Test", 685, 600, SDL_WINDOW_OPENGL);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     /* SDL_WarpMouseInWindow(window, 685 / 2, 600 / 2);
-    SDL_SetRelativeMouseMode(SDL_TRUE);            */
+    SDL_SetWindowRelativeMouseMode(window, true);            */
 
     openGLContext = SDL_GL_CreateContext(window);
+    SDL_GL_SetSwapInterval(0);
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
     {
         std::cerr << "Failed to initialize the OpenGL context." << std::endl;
@@ -202,7 +203,7 @@ int main(int ArgCount, char **Args)
 
     glDeleteProgram(GameManager::shaderProgram);
 
-    SDL_GL_DeleteContext(openGLContext);
+    SDL_GL_DestroyContext(openGLContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
