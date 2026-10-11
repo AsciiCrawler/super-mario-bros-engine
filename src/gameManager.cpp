@@ -10,6 +10,7 @@ double GameManager::simulationMilliseconds = 0.0;
 std::unique_ptr<Camera> GameManager::camera;
 std::unique_ptr<InputSystem> GameManager::inputSystem;
 std::unique_ptr<PhysicsEngine> GameManager::physicsEngine;
+std::unique_ptr<PlayerController> GameManager::playerController;
 
 std::shared_ptr<Entity> GameManager::playerEntity;
 std::vector<std::shared_ptr<Entity>> GameManager::dynamicEntities;

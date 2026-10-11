@@ -39,7 +39,7 @@ void createWindow()
     SDL_SetWindowRelativeMouseMode(window, true);            */
 
     openGLContext = SDL_GL_CreateContext(window);
-    SDL_GL_SetSwapInterval(0);
+    SDL_GL_SetSwapInterval(1);
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
     {
         std::cerr << "Failed to initialize the OpenGL context." << std::endl;
@@ -75,6 +75,7 @@ int main(int ArgCount, char **Args)
     GameManager::camera = std::make_unique<Camera>();
     GameManager::inputSystem = std::make_unique<InputSystem>();
     GameManager::physicsEngine = std::make_unique<PhysicsEngine>();
+    GameManager::playerController = std::make_unique<PlayerController>();
 
     // Mario Sprite Sheet
     {
@@ -86,6 +87,9 @@ int main(int ArgCount, char **Args)
         GameManager::dynamicEntities.push_back(entityMario);
         GameManager::playerEntity = entityMario;
         GameManager::playerEntity->setSpriteIndex("idle-right-small");
+        // Small Mario fills the lower half of his sprite; a narrower box drops into one-tile gaps
+        GameManager::playerEntity->hitboxOffset = glm::vec2(0.125f, 0.0f);
+        GameManager::playerEntity->hitboxSize = glm::vec2(0.75f, 1.0f);
     }
 
     // Blocks Sprite Sheet
@@ -191,7 +195,7 @@ int main(int ArgCount, char **Args)
                 for (auto &&e : GameManager::dynamicEntities)
                     e->previousPosition = e->position;
 
-                GameManager::inputSystem->applyToPlayer((float)fixedStep);
+                GameManager::playerController->update((float)fixedStep);
                 GameManager::physicsEngine->update((float)fixedStep);
 
                 GameManager::simulationMilliseconds += fixedStep * 1000.0;

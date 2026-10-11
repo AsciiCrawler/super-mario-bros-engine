@@ -5,97 +5,121 @@
 #include "src/gameManager.hpp"
 #include "src/entity.hpp"
 
-bool isOverlap(const glm::vec3 &a, const glm::vec3 &b)
+// Edges closer than this count as touching, not overlapping
+const float contactEpsilon = 1.0e-4f;
+
+// Tiles fill the unit square [x, x + 1] x [y, y + 1]
+static int firstCell(const float min) { return (int)std::floor(min + contactEpsilon); }
+static int lastCell(const float max) { return (int)std::ceil(max - contactEpsilon) - 1; }
+
+bool PhysicsEngine::collidesAt(const Entity &entity, const glm::vec2 &offset)
 {
-    if (a.x + 1 < b.x || a.x > b.x + 1)
-        return false;
-    if (a.y + 1 < b.y || a.y > b.y + 1)
-        return false;
-    return true;
+    const glm::vec2 min = glm::vec2(entity.position) + entity.hitboxOffset + offset;
+    const glm::vec2 max = min + entity.hitboxSize;
+
+    for (int y = firstCell(min.y); y <= lastCell(max.y); y++)
+        for (int x = firstCell(min.x); x <= lastCell(max.x); x++)
+            if (GameManager::tileMap.at(x, y))
+                return true;
+    return false;
 }
 
-void resolveCollision(Entity &entity, glm::vec3 &entityDeltaPosition, const Entity &tile)
+// Returns the distance the entity can travel along axis (0 = x, 1 = y) before a tile stops it
+static float sweep(const Entity &entity, const int axis, const float delta, bool &blocked)
 {
-    if (isOverlap(entityDeltaPosition, tile.position))
+    blocked = false;
+    const int other = 1 - axis;
+    const glm::vec2 min = glm::vec2(entity.position) + entity.hitboxOffset;
+    const glm::vec2 max = min + entity.hitboxSize;
+
+    // Lanes of tiles the hitbox spans on the other axis
+    const int laneFirst = firstCell(min[other]);
+    const int laneLast = lastCell(max[other]);
+    auto solidAt = [&](const int cell, const int lane)
     {
-        const glm::vec3 temp = entityDeltaPosition - tile.position;
+        return axis == 0 ? GameManager::tileMap.at(cell, lane) != nullptr : GameManager::tileMap.at(lane, cell) != nullptr;
+    };
 
-        // Top => Down
-        if (entity.velocity.y < 0.01f && entityDeltaPosition.y > tile.position.y && std::abs(entityDeltaPosition.x - tile.position.x) < 0.95f)
-            if (std::abs(temp.y) > std::abs(temp.x))
-            {
-                entityDeltaPosition.y = tile.position.y + 1.0f;
-                entity.velocity.y = 0.0f;
-            }
-
-        // Down => Top
-        if (entity.velocity.y > 0.01f && entityDeltaPosition.y < tile.position.y && std::abs(entityDeltaPosition.x - tile.position.x) < 0.95f)
-            if (std::abs(temp.y) > std::abs(temp.x))
-            {
-                GameManager::inputSystem->cancelJump();
-                entityDeltaPosition.y = tile.position.y - 1.0f;
-                entity.velocity.y = 0.0f;
-            }
-
-        // Left => Right
-        if (entity.velocity.x > 0.01f && entityDeltaPosition.x < tile.position.x && std::abs(entityDeltaPosition.y - tile.position.y) < 0.95f)
-            if (std::abs(temp.x) > std::abs(temp.y))
-            {
-                entityDeltaPosition.x = tile.position.x - 1.0f;
-                entity.velocity.x = 0.0f;
-            }
-
-        // Right => Left
-        if (entity.velocity.x < -0.01f && entityDeltaPosition.x > tile.position.x && std::abs(entityDeltaPosition.y - tile.position.y) < 0.95f)
-            if (std::abs(temp.x) > std::abs(temp.y))
-            {
-                entityDeltaPosition.x = tile.position.x + 1.0f;
-                entity.velocity.x = 0.0f;
-            }
+    if (delta > 0.0f)
+    {
+        // Tiles whose near edge lies between the leading edge and where it is going, nearest first
+        const float edge = max[axis];
+        const int first = (int)std::ceil(edge - contactEpsilon);
+        const int last = (int)std::ceil(edge + delta) - 1;
+        for (int cell = first; cell <= last; cell++)
+            for (int lane = laneFirst; lane <= laneLast; lane++)
+                if (solidAt(cell, lane))
+                {
+                    blocked = true;
+                    return (float)cell - edge;
+                }
     }
+    else if (delta < 0.0f)
+    {
+        const float edge = min[axis];
+        const int first = (int)std::floor(edge + contactEpsilon) - 1;
+        const int last = (int)std::floor(edge + delta);
+        for (int cell = first; cell >= last; cell--)
+            for (int lane = laneFirst; lane <= laneLast; lane++)
+                if (solidAt(cell, lane))
+                {
+                    blocked = true;
+                    return (float)(cell + 1) - edge;
+                }
+    }
+    return delta;
 }
 
-void moveEntity(Entity &entity, const float step)
+bool PhysicsEngine::moveX(Entity &entity, const float dx)
 {
-    glm::vec3 entityDeltaPosition = entity.position + (entity.velocity * step);
+    bool blocked;
+    entity.position.x += sweep(entity, 0, dx, blocked);
+    if (blocked)
+    {
+        entity.velocity.x = 0.0f;
+        (dx > 0.0f ? entity.onWallRight : entity.onWallLeft) = true;
+    }
+    return blocked;
+}
 
-    // Only tiles near the entity can overlap it; the extra cell of margin covers
-    // positions reached after a collision snaps the entity by up to one tile
-    const int minX = (int)std::ceil(entityDeltaPosition.x - 1.0f) - 1;
-    const int maxX = (int)std::floor(entityDeltaPosition.x + 1.0f) + 1;
-    const int minY = (int)std::ceil(entityDeltaPosition.y - 1.0f) - 1;
-    const int maxY = (int)std::floor(entityDeltaPosition.y + 1.0f) + 1;
-    for (int y = minY; y <= maxY; y++)
-        for (int x = minX; x <= maxX; x++)
+bool PhysicsEngine::moveY(Entity &entity, const float dy)
+{
+    bool blocked;
+    entity.position.y += sweep(entity, 1, dy, blocked);
+    if (blocked)
+    {
+        entity.velocity.y = 0.0f;
+        (dy > 0.0f ? entity.onCeiling : entity.onGround) = true;
+    }
+    return blocked;
+}
+
+bool PhysicsEngine::findCornerShift(const Entity &entity, const glm::vec2 &move, const int shiftAxis, const float maxShift, const int preferDir, const bool onlyPreferred, float &shift)
+{
+    const float increment = 1.0f / 16.0f; // One sprite pixel
+    const int first = preferDir < 0 ? -1 : 1;
+    const int directions = onlyPreferred && preferDir != 0 ? 1 : 2;
+    for (int i = 1; i * increment <= maxShift + contactEpsilon; i++)
+        for (int d = 0; d < directions; d++)
         {
-            const Entity *tile = GameManager::tileMap.at(x, y);
-            if (tile)
-                resolveCollision(entity, entityDeltaPosition, *tile);
+            glm::vec2 offset = glm::vec2(0.0f, 0.0f);
+            offset[shiftAxis] = (d == 0 ? first : -first) * i * increment;
+            // The shifted spot must be free, and the move from there must be clear
+            if (!collidesAt(entity, offset) && !collidesAt(entity, offset + move))
+            {
+                shift = offset[shiftAxis];
+                return true;
+            }
         }
-
-    entity.position = entityDeltaPosition;
+    return false;
 }
 
 void PhysicsEngine::update(const float step)
 {
     for (auto &&e : GameManager::dynamicEntities)
     {
-        if (GameManager::inputSystem->jumpState == 0)
-        {
-            e->velocity.y -= 100.0f * step;
-            if (e->velocity.y <= -25.0f)
-                e->velocity.y = -25.0f;
-        }
-
-        // Horizontal Speed
-        if (e->velocity.x > 0.1f)
-            e->velocity.x -= 20.0f * step;
-        if (e->velocity.x < -0.1f)
-            e->velocity.x += 20.0f * step;
-        if (std::abs(e->velocity.x) <= 0.1f)
-            e->velocity.x = 0.0f;
+        e->onGround = e->onCeiling = e->onWallLeft = e->onWallRight = false;
+        moveX(*e, e->velocity.x * step);
+        moveY(*e, e->velocity.y * step);
     }
-
-    for (auto &&dEntity : GameManager::dynamicEntities)
-        moveEntity(*dEntity, step);
 }

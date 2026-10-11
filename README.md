@@ -31,6 +31,8 @@ cd build && ./main
 | Key | Action |
 |---|---|
 | A / D | Move left / right |
+| W / S | Aim up / down (S also falls faster) |
 | Shift (held) | Run |
-| W | Jump |
+| Space | Jump (hold for a higher jump) |
+| K | Dash in the held direction |
 | Esc | Quit |

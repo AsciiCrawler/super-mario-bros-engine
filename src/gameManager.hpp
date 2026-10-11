@@ -6,6 +6,7 @@
 #include "src/spriteSheet/spriteSheet.hpp"
 #include "src/inputSystem/inputSystem.hpp"
 #include "src/physicsEngine/physicsEngine.hpp"
+#include "src/playerController/playerController.hpp"
 #include "vector"
 
 class GameManager
@@ -22,6 +23,7 @@ public:
     static std::unique_ptr<Camera> camera;
     static std::unique_ptr<InputSystem> inputSystem;
     static std::unique_ptr<PhysicsEngine> physicsEngine;
+    static std::unique_ptr<PlayerController> playerController;
 
     static std::shared_ptr<Entity> playerEntity;
     static std::vector<std::shared_ptr<Entity>> dynamicEntities;
