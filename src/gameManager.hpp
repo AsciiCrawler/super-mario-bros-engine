@@ -2,11 +2,11 @@
 #include "memory"
 #include "src/camera.hpp"
 #include "src/entity.hpp"
+#include "src/tileMap.hpp"
 #include "src/spriteSheet/spriteSheet.hpp"
 #include "src/inputSystem/inputSystem.hpp"
 #include "src/physicsEngine/physicsEngine.hpp"
-#include "unordered_map"
-#include "string"
+#include "vector"
 
 class GameManager
 {
@@ -17,15 +17,16 @@ public:
     static unsigned int fragmentShader; // Set -> openGLToolkit
     static unsigned int shaderProgram;  // Set -> openGLToolkit
 
-    static float deltaTime;
+    static double simulationMilliseconds; // Advanced by each fixed simulation step
 
     static std::unique_ptr<Camera> camera;
     static std::unique_ptr<InputSystem> inputSystem;
     static std::unique_ptr<PhysicsEngine> physicsEngine;
 
     static std::shared_ptr<Entity> playerEntity;
-    static std::unordered_map<std::string, std::shared_ptr<Entity>> dynamicEntities;
-    static std::unordered_map<std::string, std::shared_ptr<Entity>> staticEntities;
+    static std::vector<std::shared_ptr<Entity>> dynamicEntities;
+    static std::vector<std::shared_ptr<Entity>> staticEntities;
+    static TileMap tileMap; // Built from staticEntities
 
     static std::shared_ptr<SpriteSheet> marioSpriteSheet;
     static std::shared_ptr<SpriteSheet> blocksSpriteSheet;

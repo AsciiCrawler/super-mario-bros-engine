@@ -5,6 +5,9 @@
 // SDL
 #include <SDL3/SDL.h>
 
+#include <algorithm>
+#include <cstdio>
+
 #include "src/utilities.hpp"
 #include "src/gameManager.hpp"
 #include "src/openGLToolkit.hpp"
@@ -15,6 +18,7 @@
 #include "src/entity.hpp"
 #include "src/inputSystem/inputSystem.hpp"
 #include "src/physicsEngine/physicsEngine.hpp"
+#include "src/spriteBatch.hpp"
 
 SDL_Window *window;
 SDL_GLContext openGLContext;
@@ -65,8 +69,7 @@ int main(int ArgCount, char **Args)
     OpenGLToolkit::LoadVertexShader();
     OpenGLToolkit::LoadFragmentShader();
     OpenGLToolkit::LoadShaderProgram();
-    glUseProgram(GameManager::shaderProgram);
-    glEnable(GL_DEPTH_TEST);
+    glUseProgram(GameManager::shaderProgram); // The only shader program, bound for the whole run
     glClearColor(0.4823529411764706f, 0.4627450980392157f, 0.9686274509803922f, 1.0f);
 
     GameManager::camera = std::make_unique<Camera>();
@@ -80,8 +83,9 @@ int main(int ArgCount, char **Args)
         GameManager::marioSpriteSheet->use();
 
         std::shared_ptr<Entity> entityMario = std::make_shared<Entity>(GameManager::marioSpriteSheet);
-        GameManager::dynamicEntities[entityMario->uuid] = entityMario;
+        GameManager::dynamicEntities.push_back(entityMario);
         GameManager::playerEntity = entityMario;
+        GameManager::playerEntity->setSpriteIndex("idle-right-small");
     }
 
     // Blocks Sprite Sheet
@@ -92,8 +96,6 @@ int main(int ArgCount, char **Args)
     }
 
     // Set Floor Entities
-    std::vector<std::shared_ptr<Entity>> entities;
-
     // Platform Right
     for (int i = 3; i < 7; i++)
     {
@@ -101,8 +103,7 @@ int main(int ArgCount, char **Args)
         entityBlock->position.x = i;
         entityBlock->position.y = -3.0f;
 
-        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
-        entities.push_back(entityBlock);
+        GameManager::staticEntities.push_back(entityBlock);
     }
 
     // Platform Left
@@ -112,8 +113,7 @@ int main(int ArgCount, char **Args)
         entityBlock->position.x = i;
         entityBlock->position.y = -2.0f;
 
-        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
-        entities.push_back(entityBlock);
+        GameManager::staticEntities.push_back(entityBlock);
     }
 
     // Floor
@@ -123,8 +123,7 @@ int main(int ArgCount, char **Args)
         entityBlock->position.x = i;
         entityBlock->position.y = -7.0f;
 
-        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
-        entities.push_back(entityBlock);
+        GameManager::staticEntities.push_back(entityBlock);
     }
 
     // Wall right
@@ -134,8 +133,7 @@ int main(int ArgCount, char **Args)
         entityBlock->position.x = 7.0f;
         entityBlock->position.y = i;
 
-        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
-        entities.push_back(entityBlock);
+        GameManager::staticEntities.push_back(entityBlock);
     }
 
     // Wall left
@@ -145,62 +143,101 @@ int main(int ArgCount, char **Args)
         entityBlock->position.x = -8.0f;
         entityBlock->position.y = i;
 
-        GameManager::staticEntities[entityBlock->uuid] = entityBlock;
-        entities.push_back(entityBlock);
+        GameManager::staticEntities.push_back(entityBlock);
     }
 
-    float lastTick = SDL_GetTicks();
-    float milli = 0.0f;
-    float lastTime = 0.0f;
-    float nFrames = 0.0f;
-    /* float deltaTime = 0.0f; */
+    GameManager::tileMap.build(GameManager::staticEntities);
+
+    // One batch per sprite sheet: static tiles are uploaded once, moving sprites every frame
+    std::vector<std::unique_ptr<SpriteBatch>> staticBatches;
+    std::vector<std::unique_ptr<SpriteBatch>> dynamicBatches;
+    auto batchFor = [](std::vector<std::unique_ptr<SpriteBatch>> &batches, const std::shared_ptr<SpriteSheet> &spriteSheet, const unsigned int usage) -> SpriteBatch &
+    {
+        for (auto &&batch : batches)
+            if (batch->spriteSheet == spriteSheet)
+                return *batch;
+        batches.push_back(std::make_unique<SpriteBatch>(spriteSheet, usage));
+        return *batches.back();
+    };
+
+    for (auto &&e : GameManager::staticEntities)
+        batchFor(staticBatches, e->spriteSheet, GL_STATIC_DRAW).add(e->spriteIndex, e->position);
+    for (auto &&batch : staticBatches)
+        batch->upload();
+
+    for (auto &&e : GameManager::dynamicEntities)
+        e->previousPosition = e->position;
+
+    const double fixedStep = 1.0 / 120.0; // Simulation runs at a fixed rate, independent of FPS
+    const double maxFrameTime = 0.25;     // Caps catch-up after a stall
+    const double counterFrequency = (double)SDL_GetPerformanceFrequency();
+    Uint64 lastCounter = SDL_GetPerformanceCounter();
+    Uint64 fpsCounterStart = lastCounter;
+    double accumulator = 0.0;
+    int nFrames = 0;
     while (GameManager::isGameRunning)
     {
-        milli = SDL_GetTicks() - lastTick;
-        lastTick = SDL_GetTicks();
-        GameManager::deltaTime = milli * 0.001f;
+        const Uint64 counter = SDL_GetPerformanceCounter();
+        accumulator += std::min((counter - lastCounter) / counterFrequency, maxFrameTime);
+        lastCounter = counter;
 
         { // Event Handling BLOCK
             GameManager::inputSystem->update();
         }
 
-        { // Physics Engine Block
-            GameManager::physicsEngine->update();
+        { // Simulation BLOCK
+            while (accumulator >= fixedStep)
+            {
+                for (auto &&e : GameManager::dynamicEntities)
+                    e->previousPosition = e->position;
+
+                GameManager::inputSystem->applyToPlayer((float)fixedStep);
+                GameManager::physicsEngine->update((float)fixedStep);
+
+                GameManager::simulationMilliseconds += fixedStep * 1000.0;
+                accumulator -= fixedStep;
+            }
         }
 
         { // RENDER BLOCK
-            glUseProgram(GameManager::shaderProgram);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            // Fraction of a step not yet simulated, used to blend the last two simulated positions
+            const float alpha = (float)(accumulator / fixedStep);
+
+            glClear(GL_COLOR_BUFFER_BIT);
             // ---
 
-            GameManager::marioSpriteSheet->use();
-            GameManager::playerEntity->setSpriteIndex("idle-right-small");
-            GameManager::playerEntity->draw();
+            for (auto &&batch : dynamicBatches)
+                batch->clear();
+            for (auto &&e : GameManager::dynamicEntities)
+                batchFor(dynamicBatches, e->spriteSheet, GL_STREAM_DRAW).add(e->spriteIndex, glm::mix(e->previousPosition, e->position, alpha));
+            for (auto &&batch : dynamicBatches)
+                batch->upload();
 
-            GameManager::blocksSpriteSheet->use();
-            for (auto &&e : entities)
-                e->draw();
+            // No depth test: draw order decides what is on top, so moving sprites go last
+            for (auto &&batch : staticBatches)
+                batch->draw();
+            for (auto &&batch : dynamicBatches)
+                batch->draw();
 
             // ---
             SDL_GL_SwapWindow(window); // Render
         }
 
         ++nFrames;
-        if (SDL_GetTicks() > lastTime)
+        const double elapsedSeconds = (counter - fpsCounterStart) / counterFrequency;
+        if (elapsedSeconds >= 1.0)
         {
-            float ms = (nFrames > 0 ? 1000.0f / nFrames : 0.0f);
-            std::string performanceInfoString;
-
-            performanceInfoString += "FPS: " + std::to_string(int(ms > 0 ? 1000 / ms : 0)) + "\tms: " + std::to_string(ms);
-            const char *performanceInfoChars = performanceInfoString.c_str();
-
-            SDL_SetWindowTitle(window, ms > 0 ? performanceInfoChars : "fps = 0 ms = 0");
+            char performanceInfo[64];
+            snprintf(performanceInfo, sizeof(performanceInfo), "FPS: %d\tms: %f", (int)(nFrames / elapsedSeconds), elapsedSeconds * 1000.0 / nFrames);
+            SDL_SetWindowTitle(window, performanceInfo);
 
             nFrames = 0;
-            lastTime += 1000;
+            fpsCounterStart = counter;
         }
     }
 
+    staticBatches.clear(); // GL objects must be released while the context still exists
+    dynamicBatches.clear();
     glDeleteProgram(GameManager::shaderProgram);
 
     SDL_GL_DestroyContext(openGLContext);

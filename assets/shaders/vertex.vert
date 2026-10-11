@@ -6,10 +6,12 @@ out vec2 TexCoord;
   
 uniform mat4 projection;
 uniform mat4 view;
-uniform mat4 model;
+
+// Sprites arrive in world space; this depth sits inside the orthographic near/far range (0.1 - 100)
+const float spriteDepth = -5.0;
 
 void main()
 {
-	gl_Position = projection * model * vec4(aPos, 0.0f, 1.0f);
+	gl_Position = projection * vec4(aPos, spriteDepth, 1.0f);
 	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
 }

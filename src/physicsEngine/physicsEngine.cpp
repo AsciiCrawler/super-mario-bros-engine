@@ -1,11 +1,11 @@
 #include "memory"
-#include "iostream"
+#include "cmath"
 #include "includes/glm/glm.hpp"
 #include "src/physicsEngine/physicsEngine.hpp"
 #include "src/gameManager.hpp"
 #include "src/entity.hpp"
 
-bool isOverlap(const glm::vec3 a, const glm::vec3 b)
+bool isOverlap(const glm::vec3 &a, const glm::vec3 &b)
 {
     if (a.x + 1 < b.x || a.x > b.x + 1)
         return false;
@@ -14,74 +14,88 @@ bool isOverlap(const glm::vec3 a, const glm::vec3 b)
     return true;
 }
 
-void moveEntity(const std::shared_ptr<Entity> entity)
+void resolveCollision(Entity &entity, glm::vec3 &entityDeltaPosition, const Entity &tile)
 {
-    glm::vec3 entityDeltaPosition = entity->position + (entity->velocity * GameManager::deltaTime);
-    for (auto &&sEntity : GameManager::staticEntities)
+    if (isOverlap(entityDeltaPosition, tile.position))
     {
-        if (isOverlap(entityDeltaPosition, sEntity.second->position))
-        {
-            const glm::vec3 temp = entityDeltaPosition - sEntity.second->position;
+        const glm::vec3 temp = entityDeltaPosition - tile.position;
 
-            // Top => Down
-            if (entity->velocity.y < 0.01f && entityDeltaPosition.y > sEntity.second->position.y && abs(entityDeltaPosition.x - sEntity.second->position.x) < 0.95f)
-                if (abs(temp.y) > abs(temp.x))
-                {
-                    entityDeltaPosition.y = sEntity.second->position.y + 1.0f;
-                    entity->velocity.y = 0.0f;
-                }
+        // Top => Down
+        if (entity.velocity.y < 0.01f && entityDeltaPosition.y > tile.position.y && std::abs(entityDeltaPosition.x - tile.position.x) < 0.95f)
+            if (std::abs(temp.y) > std::abs(temp.x))
+            {
+                entityDeltaPosition.y = tile.position.y + 1.0f;
+                entity.velocity.y = 0.0f;
+            }
 
-            // Down => Top
-            if (entity->velocity.y > 0.01f && entityDeltaPosition.y < sEntity.second->position.y && abs(entityDeltaPosition.x - sEntity.second->position.x) < 0.95f)
-                if (abs(temp.y) > abs(temp.x))
-                {
-                    std::cout << "Collision from bottom" << std::endl;
-                    GameManager::inputSystem->lastJumpMilliseconds = 0;
-                    entityDeltaPosition.y = sEntity.second->position.y - 1.0f;
-                    entity->velocity.y = 0.0f;
-                }
+        // Down => Top
+        if (entity.velocity.y > 0.01f && entityDeltaPosition.y < tile.position.y && std::abs(entityDeltaPosition.x - tile.position.x) < 0.95f)
+            if (std::abs(temp.y) > std::abs(temp.x))
+            {
+                GameManager::inputSystem->cancelJump();
+                entityDeltaPosition.y = tile.position.y - 1.0f;
+                entity.velocity.y = 0.0f;
+            }
 
-            // Left => Right
-            if (entity->velocity.x > 0.01f && entityDeltaPosition.x < sEntity.second->position.x && abs(entityDeltaPosition.y - sEntity.second->position.y) < 0.95f)
-                if (abs(temp.x) > abs(temp.y))
-                {
-                    entityDeltaPosition.x = sEntity.second->position.x - 1.0f;
-                    entity->velocity.x = 0.0f;
-                }
+        // Left => Right
+        if (entity.velocity.x > 0.01f && entityDeltaPosition.x < tile.position.x && std::abs(entityDeltaPosition.y - tile.position.y) < 0.95f)
+            if (std::abs(temp.x) > std::abs(temp.y))
+            {
+                entityDeltaPosition.x = tile.position.x - 1.0f;
+                entity.velocity.x = 0.0f;
+            }
 
-            // Right => Left
-            if (entity->velocity.x < -0.01f && entityDeltaPosition.x > sEntity.second->position.x && abs(entityDeltaPosition.y - sEntity.second->position.y) < 0.95f)
-                if (abs(temp.x) > abs(temp.y))
-                {
-                    entityDeltaPosition.x = sEntity.second->position.x + 1.0f;
-                    entity->velocity.x = 0.0f;
-                }
-        }
+        // Right => Left
+        if (entity.velocity.x < -0.01f && entityDeltaPosition.x > tile.position.x && std::abs(entityDeltaPosition.y - tile.position.y) < 0.95f)
+            if (std::abs(temp.x) > std::abs(temp.y))
+            {
+                entityDeltaPosition.x = tile.position.x + 1.0f;
+                entity.velocity.x = 0.0f;
+            }
     }
-
-    entity->position = entityDeltaPosition;
 }
 
-void PhysicsEngine::update()
+void moveEntity(Entity &entity, const float step)
+{
+    glm::vec3 entityDeltaPosition = entity.position + (entity.velocity * step);
+
+    // Only tiles near the entity can overlap it; the extra cell of margin covers
+    // positions reached after a collision snaps the entity by up to one tile
+    const int minX = (int)std::ceil(entityDeltaPosition.x - 1.0f) - 1;
+    const int maxX = (int)std::floor(entityDeltaPosition.x + 1.0f) + 1;
+    const int minY = (int)std::ceil(entityDeltaPosition.y - 1.0f) - 1;
+    const int maxY = (int)std::floor(entityDeltaPosition.y + 1.0f) + 1;
+    for (int y = minY; y <= maxY; y++)
+        for (int x = minX; x <= maxX; x++)
+        {
+            const Entity *tile = GameManager::tileMap.at(x, y);
+            if (tile)
+                resolveCollision(entity, entityDeltaPosition, *tile);
+        }
+
+    entity.position = entityDeltaPosition;
+}
+
+void PhysicsEngine::update(const float step)
 {
     for (auto &&e : GameManager::dynamicEntities)
     {
         if (GameManager::inputSystem->jumpState == 0)
         {
-            e.second->velocity.y -= 100.0f * GameManager::deltaTime;
-            if (e.second->velocity.y <= -25.0f)
-                e.second->velocity.y = -25.0f;
+            e->velocity.y -= 100.0f * step;
+            if (e->velocity.y <= -25.0f)
+                e->velocity.y = -25.0f;
         }
 
         // Horizontal Speed
-        if (e.second->velocity.x > 0.1f)
-            e.second->velocity.x -= 20.0f * GameManager::deltaTime;
-        if (e.second->velocity.x < -0.1f)
-            e.second->velocity.x += 20.0f * GameManager::deltaTime;
-        if (abs(e.second->velocity.x) <= 0.1f)
-            e.second->velocity.x = 0.0f;
+        if (e->velocity.x > 0.1f)
+            e->velocity.x -= 20.0f * step;
+        if (e->velocity.x < -0.1f)
+            e->velocity.x += 20.0f * step;
+        if (std::abs(e->velocity.x) <= 0.1f)
+            e->velocity.x = 0.0f;
     }
 
     for (auto &&dEntity : GameManager::dynamicEntities)
-        moveEntity(dEntity.second);
+        moveEntity(*dEntity, step);
 }

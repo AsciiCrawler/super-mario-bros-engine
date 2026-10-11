@@ -2,10 +2,16 @@ cmake_minimum_required(VERSION 3.23.1)
 
 project(main)
 
-set(CMAKE_CXX_STANDAR 14)
-set(CMAKE_CXX_STANDAR_REQUIRED True)
-set(CMAKE_CXX_FLAGS "-std=c++14 -ldl") #-O3 
-set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Default to an optimized build when no build type is given
+get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT isMultiConfig AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+option(MARIO_NATIVE "Tune the build for the host CPU (-march=native)" OFF)
 
 find_package(SDL3 REQUIRED CONFIG)
 include_directories("./includes")
@@ -19,10 +25,20 @@ file(GLOB sourceFiles
      "src/*/*.cpp"
 )
 
-add_executable( main src/main.cpp 
+add_executable( main src/main.cpp
                 glad.c
                 ${sourceFiles})
 
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipoSupported OUTPUT ipoOutput)
+if(ipoSupported)
+    set_property(TARGET main PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
+
+if(MARIO_NATIVE)
+    target_compile_options(main PRIVATE -march=native)
+endif()
+
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 
-target_link_libraries(main PRIVATE SDL3::SDL3)
+target_link_libraries(main PRIVATE SDL3::SDL3 ${CMAKE_DL_LIBS})

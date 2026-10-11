@@ -1,15 +1,25 @@
 #pragma once
 #include "memory"
-#include "unordered_map"
-#include <cstdint>
 
 class InputSystem
 {
 public:
-    void update();
+    void update();                        // Polls events, once per frame
+    void applyToPlayer(const float step); // Applies held actions, once per simulation step
+    void cancelJump();
     int jumpState = 0; // 0 Idle - 1 Jump - 2 PostJump
-    uint64_t lastJumpMilliseconds = 0;
 
 private:
-    std::unordered_map<int, bool> keys;
+    enum Action
+    {
+        ActionLeft,
+        ActionRight,
+        ActionRun,
+        ActionJump,
+        ActionCount
+    };
+
+    bool actions[ActionCount] = {};
+    double lastJumpMilliseconds = 0.0; // Simulation time
+    static int actionForKey(const int key); // -1 when the key is not bound
 };

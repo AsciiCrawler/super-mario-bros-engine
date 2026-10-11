@@ -14,4 +14,7 @@ public:
 
     std::unordered_map<std::string, int> spriteIndexes;
     void use();
+
+    // Describes the [x, y, u, v] vertex layout of the bound buffer to the bound vertex array
+    static void setupVertexAttributes();
 };
